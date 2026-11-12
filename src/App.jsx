@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useEstoque } from "./hooks/useEstoque.js";
 import { ORDEM } from "./lib/status.js";
 import { norm } from "./lib/parse.js";
+import { ehIgnorado } from "./lib/ignorados.js";
 import Cards from "./components/Cards.jsx";
 import Tabela from "./components/Tabela.jsx";
 import Upload from "./components/Upload.jsx";
@@ -16,9 +17,14 @@ export default function App() {
   const base = useMemo(() => {
     const q = norm(busca);
     return rows.filter(
-      (r) => (!so100 || r.perf) && (!q || norm(r.nome + " " + r.prod).includes(q) || norm(r.sku).includes(q))
+      (r) => (!so100 || r.perf) && !ehIgnorado(r.nome) && (!q || norm(r.nome + " " + r.prod).includes(q) || norm(r.sku).includes(q))
     );
   }, [rows, busca, so100]);
+
+  const ocultos = useMemo(
+    () => rows.filter((r) => (!so100 || r.perf) && ehIgnorado(r.nome)).length,
+    [rows, so100]
+  );
 
   const contagem = useMemo(() => {
     const c = {};
@@ -54,7 +60,7 @@ export default function App() {
         <label><input type="checkbox" checked={so100} onChange={(e) => setSo100(e.target.checked)} /> Somente perfumes 100ML</label>
       </div>
       <Tabela linhas={linhas} ordem={ordem} onOrdenar={ordenar} />
-      <p className="mu" style={{ marginTop: 10 }}>Acima de 60: abastecido · 21 a 60: moderado · 1 a 20: crítico · 0 ou menos: zerado.</p>
+      <p className="mu" style={{ marginTop: 10 }}>Acima de 60: abastecido · 21 a 60: moderado · 1 a 20: crítico · 0 ou menos: zerado.{ocultos > 0 && ` · ${ocultos} produtos ignorados.`}</p>
       <Upload onEnviar={enviar} />
     </main>
   );
